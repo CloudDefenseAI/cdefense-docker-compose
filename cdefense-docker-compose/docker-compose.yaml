@@ -194,7 +194,7 @@ services:
       - db
     command: ["./run.sh"]
   web:
-    image:  cdefense/webconsole:${WEBCONSOLE_TAG}
+    image:  cdefense/web-console:${CD_RELEASE_TAG}
     labels:
       - "traefik.http.routers.web.rule=PathPrefix(`/`)"
       - "traefik.http.routers.web.priority=1"
