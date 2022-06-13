@@ -143,6 +143,7 @@ services:
     ports:
       - "${API_EXT_PORT}:8080"
     environment:
+      - FULL_SCAN_DOCKER_IMAGE=cdefense/fullscan:v2
       - DB_CONNECTION_STRING=jdbc:postgresql://db:5432/cdefense
       - DB_USER=cdefense
       - MICRONAUT_SECURITY_ENABLED=true
