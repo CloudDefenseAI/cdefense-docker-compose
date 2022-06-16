@@ -60,7 +60,7 @@ services:
     depends_on:
       - keycloak
   db:
-    image: postgres:12
+    image: postgres:14
     networks:
       - backend
     volumes:
