@@ -227,7 +227,7 @@ services:
       - kafka
     command: ["./run.sh"]
   web:
-    image:  cdefense/web-console:${CD_RELEASE_TAG}
+    image:  cdefense/webconsole:${CD_RELEASE_TAG}
     labels:
       - "traefik.http.routers.web.rule=PathPrefix(`/`)"
       - "traefik.http.routers.web.priority=1"
