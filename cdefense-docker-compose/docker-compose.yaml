@@ -230,6 +230,7 @@ services:
     image:  cdefense/webconsole:${CD_RELEASE_TAG}
     labels:
       - "traefik.http.routers.web.rule=PathPrefix(`/`)"
+      #- "traefik.http.routers.authservice.rule=PathPrefix(/authentication)"
       - "traefik.http.routers.web.priority=1"
       - "traefik.http.services.web.loadbalancer.server.port=80"
     networks:
