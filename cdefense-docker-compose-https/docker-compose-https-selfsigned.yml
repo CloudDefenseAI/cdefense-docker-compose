@@ -256,7 +256,7 @@ services:
       - 443:443
     environment:
       - ENVSUBST_VARS=SERVER_DOMAIN
-      - SERVER_DOMAIN=cdefense.ddns.net
+      - SERVER_DOMAIN=demo.clouddefenseai.com
     volumes:
       - ./conf:/etc/nginx/conf.d:rw
       - ./ssl:/ssl/:rw

@@ -248,8 +248,8 @@ services:
       - 443:443/tcp
     environment:
       - ENVSUBST_VARS=SERVER_DOMAIN
-      - CERTBOT_EMAIL=cddemo@clouddefense.ai
-      - SERVER_DOMAIN=cdefense.ddns.net
+      - CERTBOT_EMAIL=developer@clouddefense.ai
+      - SERVER_DOMAIN=demo.clouddefenseai.com
     volumes:
       - ./conf:/etc/nginx/user.conf.d:rw
       - letsencrypt:/etc/letsencrypt
