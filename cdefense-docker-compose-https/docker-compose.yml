@@ -334,3 +334,4 @@ volumes:
   dbdata:
   zookeeper_data:
   kafka_data:
+  letsencrypt:
