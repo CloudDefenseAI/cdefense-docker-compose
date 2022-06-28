@@ -25,9 +25,6 @@ services:
 
   recommendation:
     image: "cdefense/recommendation-service:latest"
-    labels:
-      - "traefik.http.routers.recommendation.rule=PathPrefix(/recommendation)"
-      - "traefik.http.services.recommendation.loadbalancer.server.port=3000"
     ports:
       - "${RECOMMENDATION_EXT_PORT}:3000"
     environment:
@@ -42,9 +39,6 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:18.0.0
-    labels:
-      - "traefik.http.routers.keycloak.rule=PathPrefix(/auth)"
-      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
     networks:
       - backend
     ports:
@@ -74,9 +68,6 @@ services:
 
   authservice:
     image: cdefense/auth-service:${CD_RELEASE_TAG}
-    labels:
-      - "traefik.http.routers.authservice.rule=PathPrefix(`/cd-auth`)"
-      - "traefik.http.services.authservice.loadbalancer.server.port=8080"
     networks:
       - backend
     ports:
@@ -102,9 +93,6 @@ services:
 
   graphql:
     image: cdefense/graphql:${CD_RELEASE_TAG}
-    labels:
-      - "traefik.http.routers.graphql.rule=PathPrefix(`/v1/graphql`) || PathPrefix(`/v1alpha1/`) || PathPrefix(`/console/`) || PathPrefix(`/v1/query`)"
-      - "traefik.http.services.graphql.loadbalancer.server.port=8080"
     networks:
       - backend
       - frontend
@@ -187,9 +175,6 @@ services:
 
   api:
     image: cdefense/scan-api:${CD_RELEASE_TAG}
-    labels:
-      - "traefik.http.routers.api.rule=Path(`/processAndSave`) || PathPrefix(`/scan/`) || PathPrefix(`/integration/`)"
-      - "traefik.http.services.api.loadbalancer.server.port=8080"
     networks:
       - backend
     volumes:
@@ -252,10 +237,6 @@ services:
     command: ["./run.sh"]
   web:
     image:  cdefense/webconsole:${CD_RELEASE_TAG}
-    labels:
-      - "traefik.http.routers.web.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.web.priority=1"
-      - "traefik.http.services.web.loadbalancer.server.port=80"
     networks:
       - frontend
     volumes:
@@ -281,9 +262,6 @@ services:
     command: ["./wait-for", "graphql:8080", "--", "./run.sh"]
   cube:
     image: cdefense/cubejs-cd:${CD_RELEASE_TAG}
-    labels:
-      - "traefik.http.routers.cube.rule=PathPrefix(`/cubejs-api`)"
-      - "traefik.http.services.cube.loadbalancer.server.port=4000"
     networks:
       - frontend
       - backend
