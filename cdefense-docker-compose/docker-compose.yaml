@@ -23,6 +23,20 @@ services:
       interval: 30s
       timeout: 3s
 
+  recommendation:
+    image: "cdefense/recommendation-service:latest"
+    ports:
+      - "${RECOMMENDATION_EXT_PORT}:3000"
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_DB=cdefense
+      - POSTGRES_USER=cdefense
+      - POSTGRES_PASSWORD=cd3f3ns3
+      - POSTGRES_HOST=db
+      - JWT_SECRET=scasdaf3423csaca2341ASds23E2
+    depends_on:
+      - db
+
   keycloak:
     image: jboss/keycloak:12.0.4
     labels:
