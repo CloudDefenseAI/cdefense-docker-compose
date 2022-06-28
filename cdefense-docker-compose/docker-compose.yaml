@@ -25,6 +25,9 @@ services:
 
   recommendation:
     image: "cdefense/recommendation-service:latest"
+    labels:
+      - "traefik.http.routers.recommendation.rule=PathPrefix(/recommendation)"
+      - "traefik.http.services.recommendation.loadbalancer.server.port=3000"
     ports:
       - "${RECOMMENDATION_EXT_PORT}:3000"
     environment:
@@ -267,6 +270,7 @@ services:
       - CUBEJS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
       - API_ENDPOINT=http://${CD_SERVER_HOST}:${API_EXT_PORT}
       - AUTH_ENDPOINT=http://${CD_SERVER_HOST}:${AUTHSERVICE_EXT_PORT}
+      - RECOMMENDATIONS_ENDPOINT=http://${CD_SERVER_HOST}:${RECOMMENDATION_EXT_PORT}
       - ONPREM_ENABLED=cdefense
     healthcheck:
       test: ["CMD", "nc", "-z", "127.0.0.1", "80"]
