@@ -22,7 +22,13 @@ services:
       - KEYCLOAK_LOGLEVEL=INFO
     restart: on-failure
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/auth/realms/master" ]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:8080/auth/realms/master"
+        ]
       interval: 10s
       timeout: 2s
       retries: 5
@@ -66,7 +72,7 @@ services:
       - POSTGRES_PASSWORD=cd3f3ns3
     restart: on-failure
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "cdefense"]
+      test: [ "CMD", "pg_isready", "-U", "cdefense" ]
       interval: 30s
       timeout: 3s
   graphql:
@@ -80,10 +86,7 @@ services:
       - HASURA_GRAPHQL_DATABASE_URL=postgres://cdefense:cd3f3ns3@db:5432/cdefense
       - HASURA_GRAPHQL_ENABLE_CONSOLE=true
       - HASURA_GRAPHQL_ADMIN_SECRET=cd3f3ns3
-      - 'HASURA_GRAPHQL_JWT_SECRET={
-        "type": "RS256",
-        "jwk_url": "http://keycloak:8080/auth/realms/cdefense/protocol/openid-connect/certs"
-        }'
+      - 'HASURA_GRAPHQL_JWT_SECRET={ "type": "RS256", "jwk_url": "http://keycloak:8080/auth/realms/cdefense/protocol/openid-connect/certs" }'
       - HASURA_GRAPHQL_UNAUTHORIZED_ROLE=anonymous
       - HASURA_GRAPHQL_NO_OF_RETRIES=10
       - HASURA_GRAPHQL_ENABLE_TELEMETRY=false
@@ -92,11 +95,11 @@ services:
     healthcheck:
       test:
         [
-            "CMD",
-            "wget",
-            "--quiet",
-            "--spider",
-            "http://127.0.0.1:8080/v1/version",
+          "CMD",
+          "wget",
+          "--quiet",
+          "--spider",
+          "http://127.0.0.1:8080/v1/version"
         ]
       interval: 30s
       timeout: 3s
@@ -119,7 +122,7 @@ services:
     depends_on:
       - graphql
       - db
-    command: ["./wait-for", "graphql:8080", "--", "./seed_db.sh"]
+    command: [ "./wait-for", "graphql:8080", "--", "./seed_db.sh" ]
   api:
     image: cdefense/scan-api:${CD_RELEASE_TAG}
     networks:
@@ -147,13 +150,13 @@ services:
       - CLOUDDEFENSE_WEBCONSOLE_SERVERLESS_SCAN_URL=https://${CD_SERVER_HOST}/applications/serverless/details
       - DATA_VFEED_SQLITE_FULL_REFRESH_CRON_EXPRESSION=0 */2 * * *
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "8080" ]
       interval: 30s
       timeout: 3s
     depends_on:
       - graphql
       - db
-    command: ["./run.sh"]
+    command: [ "./run.sh" ]
   data:
     image: cdefense/scan-data:${CD_RELEASE_TAG}
     networks:
@@ -171,15 +174,15 @@ services:
       - HASURA_GRAPHQL_ADMIN_SECRET=cd3f3ns3
       - VFEED_SYNC_JOB_CRON_EXPRESSION=0 */2 * * *
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "8080" ]
       interval: 30s
       timeout: 3s
     depends_on:
       - graphql
       - db
-    command: ["./run.sh"]
+    command: [ "./run.sh" ]
   web:
-    image:  cdefense/web-console:${CD_RELEASE_TAG}
+    image: cdefense/web-console:${CD_RELEASE_TAG}
     networks:
       - frontend
     volumes:
@@ -196,12 +199,12 @@ services:
       - AUTH_ENDPOINT=https://${CD_SERVER_HOST}
       - ONPREM_ENABLED=cdefense
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "80"]
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "80" ]
       interval: 30s
       timeout: 3s
     depends_on:
       - graphql
-    command: ["./wait-for", "graphql:8080", "--", "./run.sh"]
+    command: [ "./wait-for", "graphql:8080", "--", "./run.sh" ]
   cube:
     image: cdefense/cubejs-cd:${CD_RELEASE_TAG}
     networks:
@@ -221,13 +224,20 @@ services:
       - CUBEJS_DB_TYPE=postgres
       - CUBEJS_CACHE_AND_QUEUE_DRIVER=memory
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "4000"]
+      test: [ "CMD", "nc", "-z", "127.0.0.1", "4000" ]
       interval: 30s
       timeout: 3s
     depends_on:
       - db
       - web
-    command: ["/usr/src/app/wait-for", "db:5432", "--", "node", "/usr/src/app/index.js"]
+    command:
+      [
+        "/usr/src/app/wait-for",
+        "db:5432",
+        "--",
+        "node",
+        "/usr/src/app/index.js"
+      ]
 
   webserver:
     container_name: webserver
