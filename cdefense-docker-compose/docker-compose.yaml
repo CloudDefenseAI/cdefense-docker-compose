@@ -4,25 +4,64 @@ networks:
   frontend:
   backend:
 services:
-  keycloak:
-    image: jboss/keycloak:12.0.4
+
+  db:
+    image: postgres:14
+    networks:
+      - backend
+    volumes:
+      - "dbdata:/var/lib/postgresql/data"
+    ports:
+      - "${DB_EXT_PORT}:5432"
+    environment:
+      - POSTGRES_DB=cdefense
+      - POSTGRES_USER=cdefense
+      - POSTGRES_PASSWORD=cd3f3ns3
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "cdefense"]
+      interval: 30s
+      timeout: 3s
+
+  recommendation:
+    image: "cdefense/recommendation-service:latest"
     labels:
-      - "traefik.http.routers.keycloak.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.recommendation.rule=PathPrefix(/recommendation)"
+      - "traefik.http.services.recommendation.loadbalancer.server.port=3000"
+    ports:
+      - "${RECOMMENDATION_EXT_PORT}:3000"
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_DB=cdefense
+      - POSTGRES_USER=cdefense
+      - POSTGRES_PASSWORD=cd3f3ns3
+      - POSTGRES_HOST=db
+      - JWT_SECRET=scasdaf3423csaca2341ASds23E2
+    depends_on:
+      - db
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:18.0.0
+    labels:
+      - "traefik.http.routers.keycloak.rule=PathPrefix(/auth)"
       - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
     networks:
       - backend
     ports:
       - "${KEYCLOAK_EXT_PORT}:8080"
     environment:
-      - KEYCLOAK_USER=authadmin
-      - KEYCLOAK_PASSWORD=cd3f3ns3
-      - DB_ADDR=db
-      - DB_PORT=5432
-      - DB_DATABASE=cdefense
-      - DB_USER=cdefense
-      - DB_PASSWORD=cd3f3ns3
-      - DB_VENDOR=postgres
-      - KEYCLOAK_LOGLEVEL=INFO
+      - KEYCLOAK_ADMIN=authadmin
+      - KEYCLOAK_ADMIN_PASSWORD=cd3f3ns3
+      - KC_DB_URL_HOST=db
+      - KC_DB_URL_PORT=5432
+      - KC_DB_URL_DATABASE=cdefense
+      - KC_DB_USERNAME=cdefense
+      - KC_DB_PASSWORD=cd3f3ns3
+      - KC_DB=postgres
+      - KC_LOG_LEVEL=INFO
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_RELATIVE_PATH=/auth
+    entrypoint: /opt/keycloak/bin/kc.sh start-dev
     restart: on-failure
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/auth/realms/master" ]
@@ -32,6 +71,7 @@ services:
       start_period: 15s
     depends_on:
       - db
+
   authservice:
     image: cdefense/auth-service:${CD_RELEASE_TAG}
     labels:
@@ -50,7 +90,8 @@ services:
       - CLOUDDEFENSE_AUTH_DEPLOYMENT_MODE_DOCKER=true
       - CLOUDDEFENSE_AUTH_KEYCLOAK_ADMIN_USER=authadmin
       - CLOUDDEFENSE_AUTH_KEYCLOAK_ADMIN_PASSWORD=cd3f3ns3
-      - cdefense.domain=${CD_SERVER_HOST}
+      - CLOUDDEFENSE_API_URL=http://api:8080
+      - CLOUDDEFENSE_BASE_URL=http://${CD_SERVER_HOST}
     restart: on-failure
     healthcheck:
       test: [ "CMD", "nc", "-z", "127.0.0.1", "8080" ]
@@ -58,23 +99,7 @@ services:
       timeout: 3s
     depends_on:
       - keycloak
-  db:
-    image: postgres:12
-    networks:
-      - backend
-    volumes:
-      - "dbdata:/var/lib/postgresql/data"
-    ports:
-      - "${DB_EXT_PORT}:5432"
-    environment:
-      - POSTGRES_DB=cdefense
-      - POSTGRES_USER=cdefense
-      - POSTGRES_PASSWORD=cd3f3ns3
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "cdefense"]
-      interval: 30s
-      timeout: 3s
+
   graphql:
     image: cdefense/graphql:${CD_RELEASE_TAG}
     labels:
@@ -129,6 +154,37 @@ services:
       - graphql
       - db
     command: ["./wait-for", "graphql:8080", "--", "./seed_db.sh"]
+
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8
+    networks:
+      - backend
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: docker.io/bitnami/kafka:3.1
+    networks:
+      - backend
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_BROKER_ID=-1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    volumes:
+      - "kafka_data:/bitnami"
+    depends_on:
+      - zookeeper
+
   api:
     image: cdefense/scan-api:${CD_RELEASE_TAG}
     labels:
@@ -142,6 +198,7 @@ services:
     ports:
       - "${API_EXT_PORT}:8080"
     environment:
+      - FULL_SCAN_DOCKER_IMAGE=cdefense/fullscan:v2
       - DB_CONNECTION_STRING=jdbc:postgresql://db:5432/cdefense
       - DB_USER=cdefense
       - MICRONAUT_SECURITY_ENABLED=true
@@ -158,6 +215,7 @@ services:
       - CLOUDDEFENSE_WEBCONSOLE_KUBERNETES_SCAN_URL=http://${CD_SERVER_HOST}/applications/kube/details
       - CLOUDDEFENSE_WEBCONSOLE_SERVERLESS_SCAN_URL=http://${CD_SERVER_HOST}/applications/serverless/details
       - DATA_VFEED_SQLITE_FULL_REFRESH_CRON_EXPRESSION=0 */2 * * *
+      - KAFKA_SERVERS=kafka:9092
     healthcheck:
       test: ["CMD", "nc", "-z", "127.0.0.1", "8080"]
       interval: 30s
@@ -165,6 +223,7 @@ services:
     depends_on:
       - graphql
       - db
+      - kafka
     command: ["./run.sh"]
   data:
     image: cdefense/scan-data:${CD_RELEASE_TAG}
@@ -189,9 +248,10 @@ services:
     depends_on:
       - graphql
       - db
+      - kafka
     command: ["./run.sh"]
   web:
-    image:  cdefense/web-console:${CD_RELEASE_TAG}
+    image:  cdefense/webconsole:${CD_RELEASE_TAG}
     labels:
       - "traefik.http.routers.web.rule=PathPrefix(`/`)"
       - "traefik.http.routers.web.priority=1"
@@ -204,12 +264,13 @@ services:
     ports:
       - "${WEB_EXT_PORT}:80"
     environment:
-      - GRAPHQL_ENDPOINT=http://${CD_SERVER_HOST}/v1/graphql
+      - GRAPHQL_ENDPOINT=http://${CD_SERVER_HOST}:${GRAPHQL_EXT_PORT}/v1/graphql
       - AUTH_STAGE=dockerStaging
-      - CUBEJS_ENDPOINT=http://${CD_SERVER_HOST}:4000/cubejs-api/v1
+      - CUBEJS_ENDPOINT=http://${CD_SERVER_HOST}:${CUBE_EXT_PORT}/cubejs-api/v1
       - CUBEJS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-      - API_ENDPOINT=http://${CD_SERVER_HOST}
-      - AUTH_ENDPOINT=http://${CD_SERVER_HOST}
+      - API_ENDPOINT=http://${CD_SERVER_HOST}:${API_EXT_PORT}
+      - AUTH_ENDPOINT=http://${CD_SERVER_HOST}:${AUTHSERVICE_EXT_PORT}
+      - RECOMMENDATIONS_ENDPOINT=http://${CD_SERVER_HOST}:${RECOMMENDATION_EXT_PORT}
       - ONPREM_ENABLED=cdefense
     healthcheck:
       test: ["CMD", "nc", "-z", "127.0.0.1", "80"]
@@ -271,3 +332,5 @@ services:
 volumes:
   bootstrap:
   dbdata:
+  zookeeper_data:
+  kafka_data:

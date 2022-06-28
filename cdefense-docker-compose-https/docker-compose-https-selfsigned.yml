@@ -255,7 +255,9 @@ services:
       - 80:80
       - 443:443
     environment:
-        - NGINX_HOST=demo.cdefense.local
+      - NGINX_HOST=demo.clouddefenseai.com
+      - ENVSUBST_VARS=SERVER_DOMAIN
+      - SERVER_DOMAIN=demo.clouddefenseai.com
     volumes:
       - ./templates:/etc/nginx/templates
       - ./ssl:/etc/ssl
